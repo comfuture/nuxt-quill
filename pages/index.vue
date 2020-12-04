@@ -1,9 +1,6 @@
 <template>
   <main>
     <quill-editor v-model="content" />
-    <section>
-      <button>버튼</button>
-    </section>
   </main>
 </template>
 
@@ -16,7 +13,7 @@ export default {
   },
   data() {
     return {
-      content: "<hello-world>Hello, world</hello-world>",
+      content: "<hello-world>comfuture</hello-world>",
     };
   },
 };

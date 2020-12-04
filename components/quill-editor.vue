@@ -25,14 +25,32 @@ export default {
 
       // define custom blot
       const Embed = Quill.import("blots/block/embed");
-      class HelloWorldBlot extends Embed {
-        static create(value) {
-          let node = super.create(value);
-          node.appendChild(document.createTextNode("asdf"));
+      // const Block = Quill.import("blots/block");
+      class HelloWorldBlot /* Block */ extends Embed {
+        static create(name = "world") {
+          let node = super.create(name);
+          node.contentEditable = "false";
+          node.appendChild(document.createTextNode(`Hello, ${name}!`));
           return node;
         }
         static value(node) {
           return node.innerHTML;
+        }
+
+        static formats(domNode) {
+          return true;
+        }
+
+        format(name, value = "world") {
+          if (name === "value") {
+            this.domNode.innerHTML = `Hello, ${value}!`;
+          }
+        }
+
+        formats() {
+          let formats = super.formats();
+          formats["value"] = HelloWorldBlot.formats(this.domNode);
+          return formats;
         }
       }
       HelloWorldBlot.tagName = "hello-world"; // 중요!
@@ -55,16 +73,14 @@ export default {
               [{ indent: "-1" }, { indent: "+1" }],
               ["clean"],
               // ["link", "image", "video"],
-              [{ "hello-world": "hello~" }],
+              [{ "hello-world": "world" }],
             ],
             handlers: {
               // define handler for toolbar
               "hello-world": function (value = null) {
-                quill.insertEmbed(
-                  quill.getSelection(true).index,
-                  "hello-world",
-                  value
-                );
+                const { index } = quill.getSelection(true);
+                quill.insertEmbed(index, "hello-world", value);
+                quill.setSelection(index + 1, 0, "api");
               },
             },
           },
@@ -78,6 +94,17 @@ export default {
         this.content = html;
         this.$emit("input", this.content);
         this.$emit("change", { html, text, quill });
+      });
+      const Parchment = Quill.import("parchment");
+      // quill.root.addEventListener("dblclick", (event) => {
+      quill.on("dblclick", (event) => {
+        const blot = Parchment.find(event.target);
+        console.log(event, blot);
+        if (blot instanceof HelloWorldBlot) {
+          quill.setSelection(blot.offset(quill.scroll), 1, "user");
+          const newName = prompt("Your name?");
+          Quill.format(blot, "value", newName);
+        }
       });
       quill.focus();
     });
@@ -96,7 +123,23 @@ export default {
   },
 };
 </script>
-<style>
+<style lang="postcss">
+.material-icons {
+  font-family: "Material Icons";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.5em;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga" !important;
+  -webkit-font-smoothing: antialiased;
+}
+
 .ql-container .ql-snow {
   border: 1px solid rgba(34, 36, 38, 0.15);
 }
@@ -112,14 +155,15 @@ export default {
   min-height: 200px;
 }
 
-.ql-hello-world:after {
-  content: "Hi";
+.ql-toolbar button {
+  @apply material-icons;
+}
+
+.ql-hello-world::after {
+  content: "face";
 }
 
 hello-world {
-  width: 100%;
-  padding: 0.5em;
-  background: #ddd;
-  border: solid 1px #888;
+  @apply border border-gray-800 py-2 px-4 bg-blue-600 text-white rounded;
 }
 </style>
