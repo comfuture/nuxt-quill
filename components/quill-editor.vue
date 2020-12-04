@@ -6,36 +6,69 @@ export default {
   name: "quill-editor",
   props: {
     value: String,
-    placeholder: String
+    placeholder: String,
   },
   data() {
     return {
-      content: ""
+      content: "",
     };
   },
   mounted() {
     Promise.all([
       import("quill"),
       import("quill/dist/quill.core.css"),
-      import("quill/dist/quill.snow.css")
+      import("quill/dist/quill.snow.css"),
     ]).then(([{ default: Quill }, _, __]) => {
+      // define custom element
+      class HelloWorldElement extends HTMLElement {}
+      window.customElements.define("hello-world", HelloWorldElement);
+
+      // define custom blot
+      const Embed = Quill.import("blots/block/embed");
+      class HelloWorldBlot extends Embed {
+        static create(value) {
+          let node = super.create(value);
+          node.appendChild(document.createTextNode("asdf"));
+          return node;
+        }
+        static value(node) {
+          return node.innerHTML;
+        }
+      }
+      HelloWorldBlot.tagName = "hello-world"; // 중요!
+      HelloWorldBlot.blotName = "hello-world";
+      Quill.register(HelloWorldBlot);
+
       var quill = (this.quill = new Quill(this.$refs.editor, {
         theme: "snow",
         placeholder: this.placeholder,
         modules: {
-          toolbar: [
-            // [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-            ["bold", "italic", "underline", "strike"],
-            [{ font: [] }],
-            [{ color: [] }, { background: [] }],
-            [{ align: [] }],
-            // ['blockquote', 'code-block'],
-            [{ list: "ordered" }, { list: "bullet" }],
-            [{ indent: "-1" }, { indent: "+1" }],
-            ["clean"],
-            ["link", "image", "video"]
-          ]
-        }
+          toolbar: {
+            container: [
+              // [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              ["bold", "italic", "underline", "strike"],
+              [{ font: [] }],
+              [{ color: [] }, { background: [] }],
+              [{ align: [] }],
+              // ['blockquote', 'code-block'],
+              [{ list: "ordered" }, { list: "bullet" }],
+              [{ indent: "-1" }, { indent: "+1" }],
+              ["clean"],
+              // ["link", "image", "video"],
+              [{ "hello-world": "hello~" }],
+            ],
+            handlers: {
+              // define handler for toolbar
+              "hello-world": function (value = null) {
+                quill.insertEmbed(
+                  quill.getSelection(true).index,
+                  "hello-world",
+                  value
+                );
+              },
+            },
+          },
+        },
       }));
       quill.pasteHTML(this.value);
       quill.on("text-change", (delta, oldDelta, source) => {
@@ -59,8 +92,8 @@ export default {
           this.quill.setText("");
         }
       }
-    }
-  }
+    },
+  },
 };
 </script>
 <style>
@@ -77,5 +110,16 @@ export default {
 }
 .ql-editor {
   min-height: 200px;
+}
+
+.ql-hello-world:after {
+  content: "Hi";
+}
+
+hello-world {
+  width: 100%;
+  padding: 0.5em;
+  background: #ddd;
+  border: solid 1px #888;
 }
 </style>
